@@ -1,0 +1,82 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+    id 'com.chaquo.python'
+}
+
+android {
+    namespace 'com.aura.app'
+    compileSdk 34
+
+    // ⚡ ASAHI ARM64 FIX: Use system aapt2 to avoid x86_64 crashes
+    configurations.all {
+        resolutionStrategy.eachDependency { details ->
+            if (details.requested.group == 'com.android.tools.build' && details.requested.name == 'aapt2') {
+                details.useTarget("com.android.tools.build:aapt2:8.2.2-10154401") 
+            }
+        }
+    }
+
+    defaultConfig {
+        applicationId "com.aura.app"
+        minSdk 24
+        targetSdk 34
+        versionCode 5
+        versionName "1.0.5"
+        
+        ndk {
+            // Required by Chaquopy for native libraries
+            abiFilters "arm64-v8a", "x86_64"
+        }
+    }
+    
+    buildFeatures {
+        compose true
+    }
+    
+    composeOptions {
+        kotlinCompilerExtensionVersion '1.5.12'
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+}
+
+chaquopy {
+    defaultConfig {
+        version = "3.11"
+        pip {
+            // Use core dependencies that don't require Rust/Maturin build-time
+            install "requests"
+        }
+    }
+    sourceSets {
+        main {
+            // Map the Python source path to the isolated python directory
+            srcDirs = ["../../python"] 
+        }
+    }
+
+}
+
+dependencies {
+    implementation 'androidx.core:core-ktx:1.12.0'
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'androidx.activity:activity-compose:1.8.2'
+    implementation platform('androidx.compose:compose-bom:2024.02.00')
+    implementation 'androidx.compose.ui:ui'
+    implementation 'androidx.compose.material3:material3'
+    
+    // 🛠️ Pixel 10 Pro & Galaxy S25 Extensions
+    implementation 'androidx.biometric:biometric:1.1.0'
+    implementation 'io.coil-kt:coil-compose:2.5.0'
+    implementation 'androidx.lifecycle:lifecycle-service:2.6.1'
+    
+    // 🧠 Standalone AI Engine (MediaPipe)
+    implementation 'com.google.mediapipe:tasks-genai:0.10.14'
+}
