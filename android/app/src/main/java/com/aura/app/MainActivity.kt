@@ -63,9 +63,9 @@ class MainActivity : FragmentActivity() {
         shellBridge = ShellBridge()
 
         // 🔐 SECURE: Require biometric unlock on launch
-        biometricHelper.authenticate {
+        // biometricHelper.authenticate {
             setupContent()
-        }
+        // }
     }
 
     private fun setupContent() {
