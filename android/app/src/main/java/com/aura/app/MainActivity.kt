@@ -162,8 +162,18 @@ fun ChatScreen(
                         val modelName = "QWEN_1.5B"
                         view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                         if (modelManager.isModelDownloaded(modelName)) {
-                            engineMode = "STANDALONE"
-                            bridge.setLocalMode(true, modelManager.getModelFile(modelName).absolutePath)
+                            isDownloading = true
+                            view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                            bridge.setLocalMode(true, modelManager.getModelFile(modelName).absolutePath) { success ->
+                                isDownloading = false
+                                if (success) {
+                                    engineMode = "STANDALONE"
+                                    view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                                } else {
+                                    view.performHapticFeedback(HapticFeedbackConstants.REJECT)
+                                    messages = messages + "SYSTEM: Local Engine Initialization Failed"
+                                }
+                            }
                         } else if (modelManager.isModelInAssets(modelName)) {
                             isDownloading = true // Use same indicator for extraction
                             view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)

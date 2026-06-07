@@ -16,9 +16,9 @@ class ModelManager(private val context: Context) {
     )
 
     private val expectedHashes = mapOf(
-        "QWEN_1.5B" to "8771564e61c908c2199bcaa28b0ff9c5f55afb2ae73fbe263142a067113968df",
-        "QWEN_1.5B_CI" to "094406159c788591e102f9e42152862a98f1f77395c32988185794770245a491",
-        "PHI3_MINI" to "4057864f199b82885906d2d2a507851897c55afb2ae73fbe263142a067113968df" // Placeholder, CI will confirm
+        "QWEN_1.5B" to "b02409ec28adc052c838b602085bc0ac720446f8716c7f3d28925129a15fc8fa",
+        "QWEN_1.5B_OLD" to "8771564e61c908c2199bcaa28b0ff9c5f55afb2ae73fbe263142a067113968df",
+        "PHI3_MINI" to "4057864f199b82885906d2d2a507851897c55afb2ae73fbe263142a067113968df"
     )
 
     fun getModelFile(modelName: String): File {
