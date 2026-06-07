@@ -236,6 +236,7 @@ fun ChatScreen(
 
         if (showSettings) {
             // Simple Settings Panel
+            var urlText by remember { mutableStateOf("http://192.168.1.176:11435") }
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -244,9 +245,26 @@ fun ChatScreen(
             ) {
                 Text("VOID_SETTINGS", color = Color(0xFFD4AF37), style = MaterialTheme.typography.labelMedium)
                 Spacer(modifier = Modifier.height(8.dp))
+                
+                TextField(
+                    value = urlText,
+                    onValueChange = { 
+                        urlText = it
+                        bridge.setOrchestratorUrl(it)
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("REMOTE_URL", color = Color.Gray) },
+                    colors = TextFieldDefaults.textFieldColors(
+                        containerColor = Color.Transparent,
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
                 Text("Engine: ${engineMode}", color = Color.LightGray, style = MaterialTheme.typography.bodySmall)
                 Text("Model: Qwen 2.5 1.5B (Quantized)", color = Color.LightGray, style = MaterialTheme.typography.bodySmall)
-                // Add more settings here as needed (Temperature, Context, etc.)
+                
                 Button(
                     onClick = { showSettings = false },
                     modifier = Modifier.align(androidx.compose.ui.Alignment.End),
