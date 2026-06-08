@@ -147,7 +147,9 @@ fun ChatScreen(
         val modelName = "QWEN_1.5B"
         if (modelManager.isModelDownloaded(modelName)) {
             android.util.Log.d("AuraUI", "DEBUG: Forcing Local Engine Init")
-            bridge.setLocalMode(true, modelManager.getModelFile(modelName).absolutePath) { success ->
+            bridge.setLocalMode(true, modelManager.getModelFile(modelName).absolutePath, { chunk, isComplete ->
+                messages = messages.dropLast(1) + "AURA: $chunk"
+            }) { success ->
                  android.util.Log.d("AuraUI", "DEBUG: Engine Init Result: $success")
                  if (success) engineMode = "STANDALONE"
             }
@@ -181,7 +183,9 @@ fun ChatScreen(
                         if (modelManager.isModelDownloaded(modelName)) {
                             isDownloading = true
                             if (hapticsEnabled) view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                            bridge.setLocalMode(true, modelManager.getModelFile(modelName).absolutePath) { success ->
+                            bridge.setLocalMode(true, modelManager.getModelFile(modelName).absolutePath, { chunk, isComplete ->
+                                messages = messages.dropLast(1) + "AURA: $chunk"
+                            }) { success ->
                                 isDownloading = false
                                 if (success) {
                                     engineMode = "STANDALONE"
@@ -199,7 +203,9 @@ fun ChatScreen(
                                 if (success) {
                                     if (hapticsEnabled) view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
                                     engineMode = "STANDALONE"
-                                    bridge.setLocalMode(true, modelManager.getModelFile(modelName).absolutePath)
+                                    bridge.setLocalMode(true, modelManager.getModelFile(modelName).absolutePath, { chunk, isComplete ->
+                                        messages = messages.dropLast(1) + "AURA: $chunk"
+                                    })
                                 } else {
                                     if (hapticsEnabled) view.performHapticFeedback(HapticFeedbackConstants.REJECT)
                                     android.util.Log.e("AuraUI", "Extraction Error: $error")
@@ -213,7 +219,9 @@ fun ChatScreen(
                                 if (success) {
                                     if (hapticsEnabled) view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
                                     engineMode = "STANDALONE"
-                                    bridge.setLocalMode(true, modelManager.getModelFile(modelName).absolutePath)
+                                    bridge.setLocalMode(true, modelManager.getModelFile(modelName).absolutePath, { chunk, isComplete ->
+                                        messages = messages.dropLast(1) + "AURA: $chunk"
+                                    })
                                 } else {
                                     if (hapticsEnabled) view.performHapticFeedback(HapticFeedbackConstants.REJECT)
                                 }

@@ -54,7 +54,9 @@ class AuraBridge(private val context: android.content.Context) {
     fun setLocalMode(enabled: Boolean, modelPath: String? = null, onReady: (Boolean) -> Unit = {}) {
         useLocalInference = enabled
         if (enabled && modelPath != null) {
-            localEngine?.initialize(modelPath) { success ->
+            localEngine?.initialize(modelPath, { chunk, isComplete ->
+                // This will be called via the global callback in sendPrompt
+            }) { success ->
                 mainHandler.post { onReady(success) }
             }
         } else {
@@ -67,7 +69,7 @@ class AuraBridge(private val context: android.content.Context) {
      */
     fun sendPrompt(prompt: String, model: String = "qwen2.5:7b", callback: (String) -> Unit) {
         if (useLocalInference) {
-            localEngine?.generateResponse(prompt) { result ->
+            localEngine?.generateResponse(prompt) { result, isComplete ->
                 mainHandler.post { callback(result) }
             }
             return
