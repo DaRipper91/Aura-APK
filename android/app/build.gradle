@@ -21,8 +21,8 @@ android {
         applicationId "com.aura.app"
         minSdk 24
         targetSdk 34
-        versionCode 5
-        versionName "1.0.5"
+        versionCode 28
+        versionName "2.07"
         
         ndk {
             // Required by Chaquopy for native libraries
