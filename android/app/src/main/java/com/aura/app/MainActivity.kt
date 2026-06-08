@@ -270,15 +270,46 @@ fun ChatScreen(
         }
 
         if (isDownloading) {
-            val progressText = messages.lastOrNull { it.startsWith("SYSTEM: Download Progress") }?.substringAfter(":")?.trim() ?: "Pulling Model..."
-            Column(modifier = Modifier.fillMaxWidth()) {
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = Color(0xFFD4AF37))
-                Text(
-                    text = progressText,
+            val progressMsg = messages.lastOrNull { it.startsWith("SYSTEM: Download Progress") }
+            val progressText = progressMsg?.substringAfter(":")?.trim() ?: "Pulling Model..."
+            val progressValue = try {
+                val percentText = progressText.substringAfter("Progress: ").substringBefore("%")
+                percentText.toFloat() / 100f
+            } catch (e: Exception) {
+                0.0f
+            }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFF0D0D0D))
+                    .padding(vertical = 8.dp)
+            ) {
+                LinearProgressIndicator(
+                    progress = progressValue,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(4.dp),
                     color = Color(0xFFD4AF37),
-                    style = MaterialTheme.typography.labelSmall,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                    trackColor = Color(0xFF1A1A1A)
                 )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = progressText,
+                        color = Color(0xFFD4AF37),
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                    Text(
+                        text = "NETWORK LINK ACTIVE",
+                        color = Color(0xFF44FF44),
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
             }
         }
 

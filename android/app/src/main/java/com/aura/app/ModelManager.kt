@@ -9,9 +9,9 @@ import java.io.InputStream
 
 class ModelManager(private val context: Context) {
     
-    // Verified MediaPipe GenAI Models
+    // Verified MediaPipe GenAI Models (Public Mirrors)
     private val modelUrls = mapOf(
-        "QWEN_1.5B" to "https://huggingface.co/google/gemma-2b-it-tflite/resolve/main/gemma-2b-it-gpu-int4.bin",
+        "QWEN_1.5B" to "https://huggingface.co/google/gemma-2b-it-tflite/resolve/main/gemma-2b-it-cpu-int4.bin",
         "PHI3_MINI" to "https://huggingface.co/google/phi-3-mini-4k-instruct-tflite/resolve/main/phi-3-mini-4k-instruct.bin"
     )
 
@@ -133,29 +133,39 @@ class ModelManager(private val context: Context) {
             
             Thread {
                 var finished = false
+                var lastBytes = 0L
+                var lastTime = System.currentTimeMillis()
+                
                 while (!finished) {
                     val query = DownloadManager.Query().setFilterById(downloadId)
                     val cursor = downloadManager.query(query)
                     if (cursor != null && cursor.moveToFirst()) {
                         val status = cursor.getInt(cursor.getColumnIndex(DownloadManager.COLUMN_STATUS))
-                        val bytesDownloaded = cursor.getInt(cursor.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR))
-                        val totalBytes = cursor.getInt(cursor.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES))
+                        val bytesDownloaded = cursor.getLong(cursor.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR))
+                        val totalBytes = cursor.getLong(cursor.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES))
                         
                         if (totalBytes > 0) {
-                            val progress = (bytesDownloaded * 100L) / totalBytes
+                            val currentTime = System.currentTimeMillis()
+                            val timeDiff = (currentTime - lastTime) / 1000.0
+                            val bytesDiff = bytesDownloaded - lastBytes
+                            val speed = if (timeDiff > 0) bytesDiff / timeDiff else 0.0
+                            val speedMb = speed / (1024 * 1024)
+                            
+                            val progress = (bytesDownloaded * 100) / totalBytes
                             val mbDownloaded = bytesDownloaded / (1024 * 1024)
                             val mbTotal = totalBytes / (1024 * 1024)
-                            onStatus("Progress: $progress% ($mbDownloaded/$mbTotal MB)", false)
-                            android.util.Log.d("AuraModel", "Download Progress ($modelName): $progress% ($bytesDownloaded/$totalBytes)")
+                            
+                            onStatus("Progress: $progress% ($mbDownloaded/$mbTotal MB) @ ${String.format("%.1f", speedMb)} MB/s", false)
+                            
+                            lastBytes = bytesDownloaded
+                            lastTime = currentTime
                         }
 
                         if (status == DownloadManager.STATUS_SUCCESSFUL) {
-                            android.util.Log.d("AuraModel", "Download Complete: $modelName")
                             finished = true
                             onStatus("READY", true)
                         } else if (status == DownloadManager.STATUS_FAILED) {
                             val reason = cursor.getInt(cursor.getColumnIndex(DownloadManager.COLUMN_REASON))
-                            android.util.Log.e("AuraModel", "Download Failed for $modelName. Reason: $reason")
                             finished = true
                             onStatus("FAILED: $reason", true)
                         }
