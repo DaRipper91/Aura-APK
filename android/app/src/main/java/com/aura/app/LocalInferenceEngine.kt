@@ -43,10 +43,10 @@ class LocalInferenceEngine(private val context: Context) {
 
         Thread {
             try {
-                android.util.Log.d("AuraInference", "Loading model into VRAM: $modelPath")
+                android.util.Log.d("AuraInference", "Loading model into RAM (CPU Backend): $modelPath")
                 val options = LlmInference.LlmInferenceOptions.builder()
                     .setModelPath(modelPath)
-                    .setMaxTokens(2048)
+                    .setMaxTokens(512) // Slightly smaller for stability during testing
                     .setTopK(40)
                     .setTemperature(0.7f)
                     .setRandomSeed(42)
@@ -60,7 +60,7 @@ class LocalInferenceEngine(private val context: Context) {
 
                 llmInference = LlmInference.createFromOptions(context, options)
                 isInitialized = true
-                android.util.Log.d("AuraInference", "Model Loaded Successfully")
+                android.util.Log.d("AuraInference", "Model Loaded Successfully on CPU")
                 onComplete(true)
             } catch (e: Exception) {
                 android.util.Log.e("AuraInference", "Engine Init Failed: ${e.message}")
