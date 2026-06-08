@@ -265,7 +265,16 @@ fun ChatScreen(
         }
 
         if (isDownloading) {
-            LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = Color(0xFFD4AF37))
+            val progressText = messages.lastOrNull { it.startsWith("SYSTEM: Download Progress") }?.substringAfter(":")?.trim() ?: "Pulling Model..."
+            Column(modifier = Modifier.fillMaxWidth()) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = Color(0xFFD4AF37))
+                Text(
+                    text = progressText,
+                    color = Color(0xFFD4AF37),
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                )
+            }
         }
 
         if (showSettings) {
@@ -483,9 +492,9 @@ fun SettingsPanel(
                     onClick = {
                         onDownloadStart()
                         modelStatus = "DOWNLOADING..."
-                        modelManager.downloadModel(modelName) { success ->
-                            onDownloadEnd()
-                            modelStatus = if (success) "READY" else "FAILED"
+                        modelManager.downloadModel(modelName) { status, isComplete ->
+                            modelStatus = status
+                            if (isComplete) onDownloadEnd()
                         }
                     },
                     enabled = !isDownloading && modelStatus != "READY",

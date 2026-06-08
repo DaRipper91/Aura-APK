@@ -108,24 +108,65 @@ class ModelManager(private val context: Context) {
         }.start()
     }
 
-    fun downloadModel(modelName: String, onComplete: (Boolean) -> Unit) {
-        val url = modelUrls[modelName] ?: return onComplete(false)
-        val request = DownloadManager.Request(Uri.parse(url))
-            .setTitle("Aura // Pulling Model")
-            .setDescription("Downloading $modelName for standalone inference")
-            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-            .setDestinationInExternalFilesDir(context, null, "$modelName.bin")
-            .setAllowedOverMetered(true)
-            .setAllowedOverRoaming(true)
+    fun downloadModel(modelName: String, onStatus: (String, Boolean) -> Unit) {
+        val url = modelUrls[modelName]
+        if (url == null) {
+            android.util.Log.e("AuraModel", "Download Error: No URL for model $modelName")
+            onStatus("ERROR: No URL", true)
+            return
+        }
 
-        val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-        downloadManager.enqueue(request)
+        android.util.Log.d("AuraModel", "Initiating download for $modelName from: $url")
         
-        Thread {
-            while (!isModelDownloaded(modelName)) {
-                Thread.sleep(2000)
-            }
-            onComplete(true)
-        }.start()
+        try {
+            val request = DownloadManager.Request(Uri.parse(url))
+                .setTitle("Aura // Pulling Model")
+                .setDescription("Downloading $modelName for standalone inference")
+                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                .setDestinationInExternalFilesDir(context, null, "$modelName.bin")
+                .setAllowedOverMetered(true)
+                .setAllowedOverRoaming(true)
+
+            val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+            val downloadId = downloadManager.enqueue(request)
+            android.util.Log.d("AuraModel", "Download enqueued with ID: $downloadId")
+            
+            Thread {
+                var finished = false
+                while (!finished) {
+                    val query = DownloadManager.Query().setFilterById(downloadId)
+                    val cursor = downloadManager.query(query)
+                    if (cursor != null && cursor.moveToFirst()) {
+                        val status = cursor.getInt(cursor.getColumnIndex(DownloadManager.COLUMN_STATUS))
+                        val bytesDownloaded = cursor.getInt(cursor.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR))
+                        val totalBytes = cursor.getInt(cursor.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES))
+                        
+                        if (totalBytes > 0) {
+                            val progress = (bytesDownloaded * 100L) / totalBytes
+                            val mbDownloaded = bytesDownloaded / (1024 * 1024)
+                            val mbTotal = totalBytes / (1024 * 1024)
+                            onStatus("Progress: $progress% ($mbDownloaded/$mbTotal MB)", false)
+                            android.util.Log.d("AuraModel", "Download Progress ($modelName): $progress% ($bytesDownloaded/$totalBytes)")
+                        }
+
+                        if (status == DownloadManager.STATUS_SUCCESSFUL) {
+                            android.util.Log.d("AuraModel", "Download Complete: $modelName")
+                            finished = true
+                            onStatus("READY", true)
+                        } else if (status == DownloadManager.STATUS_FAILED) {
+                            val reason = cursor.getInt(cursor.getColumnIndex(DownloadManager.COLUMN_REASON))
+                            android.util.Log.e("AuraModel", "Download Failed for $modelName. Reason: $reason")
+                            finished = true
+                            onStatus("FAILED: $reason", true)
+                        }
+                    }
+                    cursor?.close()
+                    Thread.sleep(1000)
+                }
+            }.start()
+        } catch (e: Exception) {
+            android.util.Log.e("AuraModel", "Download Trigger Failed: ${e.message}")
+            onStatus("ERROR: ${e.message}", true)
+        }
     }
 }
