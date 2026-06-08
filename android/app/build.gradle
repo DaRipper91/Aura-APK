@@ -45,6 +45,10 @@ android {
     kotlinOptions {
         jvmTarget = '17'
     }
+
+    androidResources {
+        noCompress 'bin', 'task', 'onnx', 'gguf'
+    }
 }
 
 chaquopy {
