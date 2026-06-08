@@ -36,31 +36,37 @@ class LocalInferenceEngine(private val context: Context) {
 
         val modelFile = File(modelPath)
         if (!modelFile.exists()) {
+            android.util.Log.e("AuraInference", "Model file not found at: $modelPath")
             onComplete(false)
             return
         }
 
-        try {
-            val options = LlmInference.LlmInferenceOptions.builder()
-                .setModelPath(modelPath)
-                .setMaxTokens(1024)
-                .setTopK(40)
-                .setTemperature(0.7f)
-                .setRandomSeed(42)
-                .setResultListener { result, isComplete ->
-                    onPartialResult(result, isComplete)
-                }
-                .setErrorListener { error ->
-                    android.util.Log.e("AuraInference", "Async Error: ${error.message}")
-                }
-                .build()
+        Thread {
+            try {
+                android.util.Log.d("AuraInference", "Loading model into VRAM: $modelPath")
+                val options = LlmInference.LlmInferenceOptions.builder()
+                    .setModelPath(modelPath)
+                    .setMaxTokens(2048)
+                    .setTopK(40)
+                    .setTemperature(0.7f)
+                    .setRandomSeed(42)
+                    .setResultListener { result, isComplete ->
+                        onPartialResult(result, isComplete)
+                    }
+                    .setErrorListener { error ->
+                        android.util.Log.e("AuraInference", "Async Error: ${error.message}")
+                    }
+                    .build()
 
-            llmInference = LlmInference.createFromOptions(context, options)
-            isInitialized = true
-            onComplete(true)
-        } catch (e: Exception) {
-            android.util.Log.e("AuraInference", "Engine Init Failed: ${e.message}")
-            onComplete(false)
-        }
+                llmInference = LlmInference.createFromOptions(context, options)
+                isInitialized = true
+                android.util.Log.d("AuraInference", "Model Loaded Successfully")
+                onComplete(true)
+            } catch (e: Exception) {
+                android.util.Log.e("AuraInference", "Engine Init Failed: ${e.message}")
+                e.printStackTrace()
+                onComplete(false)
+            }
+        }.start()
     }
 }
