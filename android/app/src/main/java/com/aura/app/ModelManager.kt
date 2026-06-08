@@ -26,12 +26,19 @@ class ModelManager(private val context: Context) {
     }
 
     fun isModelDownloaded(modelName: String): Boolean {
-        return getModelFile(modelName).exists()
+        val file = getModelFile(modelName)
+        // Ensure it's not just an LFS placeholder (usually < 1KB)
+        return file.exists() && file.length() > 1024 * 1024 * 100 // At least 100MB
     }
 
     fun isModelInAssets(modelName: String): Boolean {
         return try {
-            context.assets.list("models")?.contains("$modelName.bin") ?: false
+            val assetPath = "models/$modelName.bin"
+            // Check if it's a real file in assets (Chaquopy/Android might see placeholders)
+            val inputStream = context.assets.open(assetPath)
+            val size = inputStream.available()
+            inputStream.close()
+            size > 1024 * 1024 // If it's in assets, it should be > 1MB
         } catch (e: Exception) {
             false
         }
