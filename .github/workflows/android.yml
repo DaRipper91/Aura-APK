@@ -30,21 +30,29 @@ jobs:
     - name: Build with Gradle
       run: |
         cd android
-        ./gradlew assembleDebug
+        ./gradlew assemblePixelDebug assembleSamsungDebug
         VERSION_NAME=$(grep "versionName" app/build.gradle | awk -F'"' '{print $2}')
         echo "AURA_VERSION=$VERSION_NAME" >> $GITHUB_ENV
 
-    - name: Upload APK
+    - name: Upload Pixel APK
       uses: actions/upload-artifact@v4
       with:
-        name: aura-app-debug
-        path: android/app/build/outputs/apk/debug/app-debug.apk
+        name: aura-pixel-debug
+        path: android/app/build/outputs/apk/pixel/debug/app-pixel-debug.apk
+
+    - name: Upload Samsung APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: aura-samsung-debug
+        path: android/app/build/outputs/apk/samsung/debug/app-samsung-debug.apk
 
     - name: Create Release
       if: github.event_name == 'push' && github.ref == 'refs/heads/master'
       uses: softprops/action-gh-release@v2
       with:
-        files: android/app/build/outputs/apk/debug/app-debug.apk
+        files: |
+          android/app/build/outputs/apk/pixel/debug/app-pixel-debug.apk
+          android/app/build/outputs/apk/samsung/debug/app-samsung-debug.apk
         tag_name: v${{ env.AURA_VERSION }}
         name: Release ${{ env.AURA_VERSION }}
         draft: false
