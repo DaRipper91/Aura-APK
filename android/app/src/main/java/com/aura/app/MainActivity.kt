@@ -69,18 +69,6 @@ class MainActivity : FragmentActivity() {
     }
 
     private fun setupContent() {
-        // DEBUG: Force Local Engine Init
-        val modelName = "QWEN_1.5B"
-        if (modelManager.isModelDownloaded(modelName)) {
-            android.util.Log.d("AuraUI", "DEBUG: Forcing Local Engine Init")
-            bridge.setLocalMode(true, modelManager.getModelFile(modelName).absolutePath) { success ->
-                 android.util.Log.d("AuraUI", "DEBUG: Engine Init Result: $success")
-                 if (success) engineMode = "STANDALONE"
-            }
-        } else {
-             android.util.Log.w("AuraUI", "DEBUG: Model not found on disk at ${modelManager.getModelFile(modelName).absolutePath}")
-        }
-
         val sharedText = if (intent?.action == Intent.ACTION_SEND && intent.type == "text/plain") {
             intent.getStringExtra(Intent.EXTRA_TEXT)
         } else null
@@ -147,8 +135,20 @@ fun ChatScreen(
     var engineMode by remember { mutableStateOf("REMOTE") } // REMOTE, STANDALONE, ADVANCED
     var isDownloading by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
-    
     val view = LocalView.current
+
+    // DEBUG: Force Local Engine Init
+    LaunchedEffect(Unit) {
+        val modelName = "QWEN_1.5B"
+        if (modelManager.isModelDownloaded(modelName)) {
+            android.util.Log.d("AuraUI", "DEBUG: Forcing Local Engine Init")
+            bridge.setLocalMode(true, modelManager.getModelFile(modelName).absolutePath) { success ->
+                 android.util.Log.d("AuraUI", "DEBUG: Engine Init Result: $success")
+                 if (success) engineMode = "STANDALONE"
+            }
+        }
+    }
+
     val context = LocalContext.current
 
     Column(
