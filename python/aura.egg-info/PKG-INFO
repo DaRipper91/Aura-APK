@@ -1,0 +1,18 @@
+Metadata-Version: 2.4
+Name: aura
+Version: 1.0.6
+Summary: Aura // Local AI Interchange
+Requires-Python: >=3.12
+Description-Content-Type: text/markdown
+Requires-Dist: PySide6
+Requires-Dist: requests
+Requires-Dist: markdown-it-py
+
+# Aura // Desktop Edition (Go)
+Aura is a high-performance, local AI agent optimized for Linux, Windows, and macOS.
+This repository contains the Desktop CLI (Aura-Go), built with Go and Charm BubbleTea.
+
+### Ecosystem
+- **Aura-Desktop (This Repo):** Go-native TUI.
+- **Aura-Xbox:** Rust-native engine for UWP.
+- **Aura-APK:** Kotlin + Rust (JNI) for Android.

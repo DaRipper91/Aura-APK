@@ -1,0 +1,13 @@
+README.md
+pyproject.toml
+python/aura/__init__.py
+python/aura/main.py
+python/aura.egg-info/PKG-INFO
+python/aura.egg-info/SOURCES.txt
+python/aura.egg-info/dependency_links.txt
+python/aura.egg-info/entry_points.txt
+python/aura.egg-info/requires.txt
+python/aura.egg-info/top_level.txt
+python/aura_core/__init__.py
+python/aura_core/engine.py
+python/aura_core/mandates.py

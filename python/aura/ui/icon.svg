@@ -1,0 +1,27 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" rx="90" fill="#080808"/>
+  
+  <!-- Ambient Aura Glow (Subtle) -->
+  <circle cx="256" cy="256" r="200" fill="url(#radial_aura)" opacity="0.15" />
+
+  <!-- The Stylized 'A' Structure -->
+  <g stroke-width="35" stroke-linecap="square" fill="none">
+    <!-- Left diagonal (Purple) -->
+    <path d="M256 120 L130 392" stroke="#8833FF" />
+    <!-- Right diagonal (Gold) -->
+    <path d="M256 120 L382 392" stroke="#D4AF37" />
+    <!-- Crossbar (Digital Block / Cursor) -->
+    <path d="M190 290 L322 290" stroke="#E0E0E0" stroke-width="25" />
+  </g>
+
+  <!-- Glitch Accents -->
+  <rect x="120" y="380" width="30" height="12" fill="#8833FF" />
+  <rect x="362" y="380" width="30" height="12" fill="#D4AF37" />
+  
+  <defs>
+    <radialGradient id="radial_aura" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#8833FF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#000000;stop-opacity:0" />
+    </radialGradient>
+  </defs>
+</svg>
