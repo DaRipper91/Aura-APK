@@ -290,6 +290,8 @@ fun ChatScreen(
                 isDownloading = isDownloading,
                 hapticsEnabled = hapticsEnabled,
                 biometricsEnabled = biometricsEnabled,
+                messages = messages,
+                onMessagesChange = { messages = it },
                 onHapticsToggle = { hapticsEnabled = it },
                 onBiometricsToggle = { biometricsEnabled = it },
                 onDownloadStart = { isDownloading = true },
@@ -417,6 +419,8 @@ fun SettingsPanel(
     isDownloading: Boolean,
     hapticsEnabled: Boolean,
     biometricsEnabled: Boolean,
+    messages: List<String>,
+    onMessagesChange: (List<String>) -> Unit,
     onHapticsToggle: (Boolean) -> Unit,
     onBiometricsToggle: (Boolean) -> Unit,
     onDownloadStart: () -> Unit,
@@ -503,7 +507,7 @@ fun SettingsPanel(
                                 onDownloadEnd()
                             } else {
                                 modelStatus = status
-                                messages = messages.filter { !it.startsWith("SYSTEM: Download Progress") } + "SYSTEM: Download Progress: $status"
+                                onMessagesChange(messages.filter { !it.startsWith("SYSTEM: Download Progress") } + "SYSTEM: Download Progress: $status")
                             }
                         }
                     },
