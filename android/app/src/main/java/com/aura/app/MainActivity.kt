@@ -135,6 +135,11 @@ fun ChatScreen(
     var engineMode by remember { mutableStateOf("REMOTE") } // REMOTE, STANDALONE, ADVANCED
     var isDownloading by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
+    
+    // Feature Toggles
+    var hapticsEnabled by remember { mutableStateOf(true) }
+    var biometricsEnabled by remember { mutableStateOf(false) }
+    
     val view = LocalView.current
 
     // DEBUG: Force Local Engine Init
@@ -155,8 +160,8 @@ fun ChatScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .statusBarsPadding() // Ensure text doesn't hide under the camera
-            .navigationBarsPadding() // Space for gesture bar
+            .statusBarsPadding() 
+            .navigationBarsPadding() 
             .imePadding() 
     ) {
         // 🌌 HEADER: Mode Switcher
@@ -172,31 +177,31 @@ fun ChatScreen(
                     color = if (engineMode == "STANDALONE") Color(0xFF8833FF) else Color.Gray,
                     modifier = Modifier.clickable { 
                         val modelName = "QWEN_1.5B"
-                        view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                        if (hapticsEnabled) view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                         if (modelManager.isModelDownloaded(modelName)) {
                             isDownloading = true
-                            view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                            if (hapticsEnabled) view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                             bridge.setLocalMode(true, modelManager.getModelFile(modelName).absolutePath) { success ->
                                 isDownloading = false
                                 if (success) {
                                     engineMode = "STANDALONE"
-                                    view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                                    if (hapticsEnabled) view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
                                 } else {
-                                    view.performHapticFeedback(HapticFeedbackConstants.REJECT)
+                                    if (hapticsEnabled) view.performHapticFeedback(HapticFeedbackConstants.REJECT)
                                     messages = messages + "SYSTEM: Local Engine Initialization Failed"
                                 }
                             }
                         } else if (modelManager.isModelInAssets(modelName)) {
-                            isDownloading = true // Use same indicator for extraction
-                            view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                            isDownloading = true 
+                            if (hapticsEnabled) view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                             modelManager.extractModelFromAssets(modelName) { success, error ->
                                 isDownloading = false
                                 if (success) {
-                                    view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                                    if (hapticsEnabled) view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
                                     engineMode = "STANDALONE"
                                     bridge.setLocalMode(true, modelManager.getModelFile(modelName).absolutePath)
                                 } else {
-                                    view.performHapticFeedback(HapticFeedbackConstants.REJECT)
+                                    if (hapticsEnabled) view.performHapticFeedback(HapticFeedbackConstants.REJECT)
                                     android.util.Log.e("AuraUI", "Extraction Error: $error")
                                     messages = messages + "SYSTEM: Local Engine Error - $error"
                                 }
@@ -206,11 +211,11 @@ fun ChatScreen(
                             modelManager.downloadModel(modelName) { success ->
                                 isDownloading = false
                                 if (success) {
-                                    view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                                    if (hapticsEnabled) view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
                                     engineMode = "STANDALONE"
                                     bridge.setLocalMode(true, modelManager.getModelFile(modelName).absolutePath)
                                 } else {
-                                    view.performHapticFeedback(HapticFeedbackConstants.REJECT)
+                                    if (hapticsEnabled) view.performHapticFeedback(HapticFeedbackConstants.REJECT)
                                 }
                             }
                         }
@@ -221,7 +226,7 @@ fun ChatScreen(
                     text = "RE", 
                     color = if (engineMode == "REMOTE") Color(0xFF8833FF) else Color.Gray,
                     modifier = Modifier.clickable { 
-                        view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                        if (hapticsEnabled) view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                         engineMode = "REMOTE"
                         bridge.setLocalMode(false)
                     }.padding(horizontal = 8.dp),
@@ -231,7 +236,7 @@ fun ChatScreen(
                     text = "ADV", 
                     color = if (engineMode == "ADVANCED") Color(0xFFD4AF37) else Color.Gray,
                     modifier = Modifier.clickable { 
-                        view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                        if (hapticsEnabled) view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                         engineMode = "ADVANCED"
                     }.padding(horizontal = 8.dp),
                     style = MaterialTheme.typography.labelSmall
@@ -239,12 +244,11 @@ fun ChatScreen(
                 
                 Spacer(modifier = Modifier.width(8.dp))
                 
-                // ⚙️ VOID_SETTINGS Toggle
                 Text(
                     text = "SETTINGS",
                     color = if (showSettings) Color(0xFFD4AF37) else Color.Gray,
                     modifier = Modifier.clickable {
-                        view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                        if (hapticsEnabled) view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                         showSettings = !showSettings
                     }.padding(horizontal = 8.dp),
                     style = MaterialTheme.typography.labelSmall
@@ -257,44 +261,15 @@ fun ChatScreen(
         }
 
         if (showSettings) {
-            // Simple Settings Panel
-            var urlText by remember { mutableStateOf("http://192.168.1.176:11435") }
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surface)
-                    .padding(16.dp)
-            ) {
-                Text("VOID_SETTINGS", color = Color(0xFFD4AF37), style = MaterialTheme.typography.labelMedium)
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                TextField(
-                    value = urlText,
-                    onValueChange = { 
-                        urlText = it
-                        bridge.setOrchestratorUrl(it)
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("REMOTE_URL", color = Color.Gray) },
-                    colors = TextFieldDefaults.textFieldColors(
-                        containerColor = Color.Transparent,
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White
-                    )
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-                Text("Engine: ${engineMode}", color = Color.LightGray, style = MaterialTheme.typography.bodySmall)
-                Text("Model: Qwen 2.5 1.5B (Quantized)", color = Color.LightGray, style = MaterialTheme.typography.bodySmall)
-                
-                Button(
-                    onClick = { showSettings = false },
-                    modifier = Modifier.align(androidx.compose.ui.Alignment.End),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
-                ) {
-                    Text("CLOSE", color = Color(0xFFD4AF37))
-                }
-            }
+            SettingsPanel(
+                engineMode = engineMode,
+                bridge = bridge,
+                hapticsEnabled = hapticsEnabled,
+                biometricsEnabled = biometricsEnabled,
+                onHapticsToggle = { hapticsEnabled = it },
+                onBiometricsToggle = { biometricsEnabled = it },
+                onClose = { showSettings = false }
+            )
         }
 
         LazyColumn(
@@ -302,26 +277,13 @@ fun ChatScreen(
             reverseLayout = true 
         ) {
             items(messages.reversed()) { msg ->
-                Column {
-                    Text(
-                        text = msg, 
-                        color = if (msg.startsWith("USER:")) Color(0xFFD4AF37) else Color(0xFFB0B0B0), 
-                        modifier = Modifier.padding(vertical = 4.dp)
-                    )
-                    // 🖼️ COIL: Simple image detection
-                    if (msg.contains("http") && (msg.contains(".png") || msg.contains(".jpg"))) {
-                        AsyncImage(
-                            model = msg.substringAfter("http").substringBefore(" ").let { "http$it" },
-                            contentDescription = "Aura Rendered Asset",
-                            modifier = Modifier.fillMaxWidth().height(200.dp).padding(vertical = 8.dp)
-                        )
-                    }
-                }
+                ChatMessage(msg)
             }
         }
         
         Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp)
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
         ) {
             TextField(
                 value = inputText,
@@ -329,11 +291,12 @@ fun ChatScreen(
                 modifier = Modifier.weight(1f),
                 placeholder = { Text(if (engineMode == "ADVANCED") "Root Command..." else "Aura Command...", color = Color.Gray) },
                 colors = TextFieldDefaults.textFieldColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
+                    containerColor = Color(0xFF1A1A1A),
                     focusedTextColor = Color.White,
                     unfocusedTextColor = Color.White,
                     cursorColor = Color(0xFFD4AF37)
-                )
+                ),
+                shape = MaterialTheme.shapes.medium
             )
             Spacer(modifier = Modifier.width(8.dp))
             if (onDictate != null) {
@@ -346,7 +309,7 @@ fun ChatScreen(
                 onClick = {
                     val prompt = inputText
                     if (prompt.isNotBlank()) {
-                        view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                        if (hapticsEnabled) view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                         messages = messages + "USER: $prompt"
                         messages = messages + "AURA: ..." 
                         inputText = ""
@@ -361,21 +324,263 @@ fun ChatScreen(
                                 }
                             })
                         } else {
-                            // 🔋 PERSISTENCE: Start background service during reasoning
                             val serviceIntent = Intent(context, AuraService::class.java)
                             context.startForegroundService(serviceIntent)
                             
                             bridge.sendPrompt(prompt) { currentStream ->
-                                view.performHapticFeedback(HapticFeedbackConstants.TEXT_HANDLE_MOVE)
+                                if (hapticsEnabled) view.performHapticFeedback(HapticFeedbackConstants.TEXT_HANDLE_MOVE)
                                 messages = messages.dropLast(1) + "AURA: $currentStream"
                             }
                         }
                     }
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.onSecondary)
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8833FF)),
+                shape = MaterialTheme.shapes.medium,
+                modifier = Modifier.height(56.dp)
             ) {
                 Text("VOID", color = Color.White)
             }
         }
+    }
+}
+
+@Composable
+fun ChatMessage(msg: String) {
+    val isUser = msg.startsWith("USER:")
+    val isSystem = msg.startsWith("SYSTEM:")
+    val content = msg.substringAfter(":").trim()
+    
+    val alignment = if (isUser) androidx.compose.ui.Alignment.End else androidx.compose.ui.Alignment.Start
+    val bgColor = when {
+        isUser -> Color(0xFF2A2A2A)
+        isSystem -> Color(0xFF441111)
+        else -> Color(0xFF1A1A1A)
+    }
+    val textColor = if (isUser) Color(0xFFD4AF37) else Color(0xFFE0E0E0)
+
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        horizontalAlignment = alignment
+    ) {
+        Box(
+            modifier = androidx.compose.ui.Modifier
+                .background(bgColor, shape = MaterialTheme.shapes.medium)
+                .padding(horizontal = 12.dp, vertical = 8.dp)
+                .widthIn(max = 280.dp)
+        ) {
+            Text(text = content, color = textColor, style = MaterialTheme.typography.bodyMedium)
+        }
+        
+        // 🖼️ COIL: Simple image detection in content
+        if (content.contains("http") && (content.contains(".png") || content.contains(".jpg"))) {
+            AsyncImage(
+                model = content.substringAfter("http").substringBefore(" ").let { "http$it" },
+                contentDescription = "Aura Rendered Asset",
+                modifier = Modifier.fillMaxWidth().height(200.dp).padding(vertical = 8.dp)
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SettingsPanel(
+    engineMode: String,
+    bridge: AuraBridge,
+    hapticsEnabled: Boolean,
+    biometricsEnabled: Boolean,
+    onHapticsToggle: (Boolean) -> Unit,
+    onBiometricsToggle: (Boolean) -> Unit,
+    onClose: () -> Unit
+) {
+    var urlText by remember { mutableStateOf("http://192.168.1.176:11435") }
+    var connectionStatus by remember { mutableStateOf("IDLE") } // IDLE, TESTING, OK, FAIL
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFF1A1A1A))
+            .padding(16.dp)
+    ) {
+        Text(
+            "VOID // SETTINGS", 
+            color = Color(0xFFD4AF37), 
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+
+        SettingsSection("REMOTE ORCHESTRATOR") {
+            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                TextField(
+                    value = urlText,
+                    onValueChange = { 
+                        urlText = it
+                        bridge.setOrchestratorUrl(it)
+                    },
+                    modifier = Modifier.weight(1f),
+                    placeholder = { Text("http://...", color = Color.DarkGray) },
+                    textStyle = MaterialTheme.typography.bodySmall,
+                    colors = TextFieldDefaults.textFieldColors(
+                        containerColor = Color(0xFF2A2A2A),
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.LightGray,
+                        cursorColor = Color(0xFFD4AF37)
+                    )
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Button(
+                    onClick = {
+                        connectionStatus = "TESTING"
+                        bridge.testConnection(urlText) { success ->
+                            connectionStatus = if (success) "OK" else "FAIL"
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = when(connectionStatus) {
+                            "OK" -> Color(0xFF225522)
+                            "FAIL" -> Color(0xFF552222)
+                            else -> Color(0xFF2A2A2A)
+                        }
+                    ),
+                    modifier = Modifier.height(56.dp)
+                ) {
+                    Text(if (connectionStatus == "TESTING") "..." else "TEST")
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        SettingsSection("SYSTEM PREFERENCES") {
+            ToggleRow("HAPTIC_FEEDBACK", hapticsEnabled, onHapticsToggle)
+            ToggleRow("BIOMETRIC_VAULT", biometricsEnabled, onBiometricsToggle)
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        SettingsSection("ENGINE STATUS") {
+            SettingRow("ACTIVE_MODE", engineMode)
+            SettingRow("MODEL", "Qwen 2.5 1.5B")
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        Button(
+            onClick = onClose,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2A2A2A))
+        ) {
+            Text("RETURN TO VOID", color = Color(0xFFD4AF37))
+        }
+    }
+}
+
+@Composable
+fun ToggleRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+    ) {
+        Text(label, color = Color.Gray, style = MaterialTheme.typography.bodySmall)
+        Switch(
+            checked = checked, 
+            onCheckedChange = onCheckedChange,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color(0xFFD4AF37),
+                checkedTrackColor = Color(0xFF8833FF)
+            )
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SettingsPanel(
+    engineMode: String,
+    bridge: AuraBridge,
+    onClose: () -> Unit
+) {
+    var urlText by remember { mutableStateOf("http://192.168.1.176:11435") }
+    
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFF1A1A1A))
+            .padding(16.dp)
+    ) {
+        Text(
+            "VOID // SETTINGS", 
+            color = Color(0xFFD4AF37), 
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+
+        SettingsSection("REMOTE ORCHESTRATOR") {
+            TextField(
+                value = urlText,
+                onValueChange = { 
+                    urlText = it
+                    bridge.setOrchestratorUrl(it)
+                },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("http://...", color = Color.DarkGray) },
+                textStyle = MaterialTheme.typography.bodySmall,
+                colors = TextFieldDefaults.textFieldColors(
+                    containerColor = Color(0xFF2A2A2A),
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.LightGray,
+                    cursorColor = Color(0xFFD4AF37)
+                )
+            )
+            Text(
+                "Point to an Ollama-compatible endpoint.", 
+                color = Color.Gray, 
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier.padding(top = 4.dp, start = 4.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        SettingsSection("ENGINE STATUS") {
+            SettingRow("ACTIVE_MODE", engineMode)
+            SettingRow("MODEL", "Qwen 2.5 1.5B")
+            SettingRow("QUANT", "Q8_0 (MediaPipe)")
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        Button(
+            onClick = onClose,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2A2A2A))
+        ) {
+            Text("RETURN TO VOID", color = Color(0xFFD4AF37))
+        }
+    }
+}
+
+@Composable
+fun SettingsSection(title: String, content: @Composable () -> Unit) {
+    Column {
+        Text(
+            title, 
+            color = Color(0xFF8833FF), 
+            style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+        content()
+    }
+}
+
+@Composable
+fun SettingRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(label, color = Color.Gray, style = MaterialTheme.typography.bodySmall)
+        Text(value, color = Color.White, style = MaterialTheme.typography.bodySmall)
     }
 }

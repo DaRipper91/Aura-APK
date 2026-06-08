@@ -45,5 +45,10 @@ Aura currently supports the **Qwen 1.5B** model for local inference. Models are 
 
 This project uses GitHub Actions for automated builds. Every push to the `master` branch triggers a build and automatically creates a new release with the generated APK.
 
+## 🤝 Credits & Gratitude
+
+This project wouldn't be where it is today without the incredible support and inspiration from:
+- **Deanna, Nate, and Bray:** Thank you for the vibrant color palettes, the visionary platform ideas, and for being the anchor that pulled me back on track whenever the A.D.H.D. peaked the hardest. Your friendship and focus made Aura possible. 💜
+
 ---
 *Built with 💜 for privacy and performance.*

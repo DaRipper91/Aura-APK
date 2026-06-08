@@ -31,6 +31,24 @@ class AuraBridge(private val context: android.content.Context) {
     }
 
     /**
+     * Tests if the remote orchestrator is reachable.
+     */
+    fun testConnection(url: String, callback: (Boolean) -> Unit) {
+        Thread {
+            try {
+                val connection = java.net.URL(url).openConnection() as java.net.HttpURLConnection
+                connection.connectTimeout = 3000
+                connection.readTimeout = 3000
+                connection.requestMethod = "GET"
+                val responseCode = connection.responseCode
+                mainHandler.post { callback(responseCode == 200 || responseCode == 404) } // 404 is fine as long as server responds
+            } catch (e: Exception) {
+                mainHandler.post { callback(false) }
+            }
+        }.start()
+    }
+
+    /**
      * Toggles between Remote Python Engine and Standalone Local Engine.
      */
     fun setLocalMode(enabled: Boolean, modelPath: String? = null, onReady: (Boolean) -> Unit = {}) {
