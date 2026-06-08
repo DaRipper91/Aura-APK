@@ -147,7 +147,7 @@ fun ChatScreen(
         val modelName = "QWEN_1.5B"
         if (modelManager.isModelDownloaded(modelName)) {
             android.util.Log.d("AuraUI", "DEBUG: Forcing Local Engine Init")
-            bridge.setLocalMode(true, modelManager.getModelFile(modelName).absolutePath, { chunk, isComplete ->
+            bridge.setLocalMode(true, modelManager.getModelFile(modelName).absolutePath, { chunk, _ ->
                 messages = messages.dropLast(1) + "AURA: $chunk"
             }) { success ->
                  android.util.Log.d("AuraUI", "DEBUG: Engine Init Result: $success")
@@ -203,7 +203,7 @@ fun ChatScreen(
                                 if (success) {
                                     if (hapticsEnabled) view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
                                     engineMode = "STANDALONE"
-                                    bridge.setLocalMode(true, modelManager.getModelFile(modelName).absolutePath, { chunk, isComplete ->
+                                    bridge.setLocalMode(true, modelManager.getModelFile(modelName).absolutePath, { chunk, _ ->
                                         messages = messages.dropLast(1) + "AURA: $chunk"
                                     })
                                 } else {
@@ -214,16 +214,21 @@ fun ChatScreen(
                             }
                         } else {
                             isDownloading = true
-                            modelManager.downloadModel(modelName) { success ->
-                                isDownloading = false
-                                if (success) {
-                                    if (hapticsEnabled) view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-                                    engineMode = "STANDALONE"
-                                    bridge.setLocalMode(true, modelManager.getModelFile(modelName).absolutePath, { chunk, isComplete ->
-                                        messages = messages.dropLast(1) + "AURA: $chunk"
-                                    })
+                            modelManager.downloadModel(modelName) { status, isComplete ->
+                                if (isComplete) {
+                                    isDownloading = false
+                                    if (status == "READY") {
+                                        if (hapticsEnabled) view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                                        engineMode = "STANDALONE"
+                                        bridge.setLocalMode(true, modelManager.getModelFile(modelName).absolutePath, { chunk, _ ->
+                                            messages = messages.dropLast(1) + "AURA: $chunk"
+                                        })
+                                    } else {
+                                        if (hapticsEnabled) view.performHapticFeedback(HapticFeedbackConstants.REJECT)
+                                        messages = messages + "SYSTEM: Download Failed - $status"
+                                    }
                                 } else {
-                                    if (hapticsEnabled) view.performHapticFeedback(HapticFeedbackConstants.REJECT)
+                                    messages = messages.filter { !it.startsWith("SYSTEM: Download Progress") } + "SYSTEM: Download Progress: $status"
                                 }
                             }
                         }
@@ -493,8 +498,13 @@ fun SettingsPanel(
                         onDownloadStart()
                         modelStatus = "DOWNLOADING..."
                         modelManager.downloadModel(modelName) { status, isComplete ->
-                            modelStatus = status
-                            if (isComplete) onDownloadEnd()
+                            if (isComplete) {
+                                modelStatus = status
+                                onDownloadEnd()
+                            } else {
+                                modelStatus = status
+                                messages = messages.filter { !it.startsWith("SYSTEM: Download Progress") } + "SYSTEM: Download Progress: $status"
+                            }
                         }
                     },
                     enabled = !isDownloading && modelStatus != "READY",
