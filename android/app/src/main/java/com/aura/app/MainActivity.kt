@@ -272,10 +272,14 @@ fun ChatScreen(
             SettingsPanel(
                 engineMode = engineMode,
                 bridge = bridge,
+                modelManager = modelManager,
+                isDownloading = isDownloading,
                 hapticsEnabled = hapticsEnabled,
                 biometricsEnabled = biometricsEnabled,
                 onHapticsToggle = { hapticsEnabled = it },
                 onBiometricsToggle = { biometricsEnabled = it },
+                onDownloadStart = { isDownloading = true },
+                onDownloadEnd = { isDownloading = false },
                 onClose = { showSettings = false }
             )
         }
@@ -395,14 +399,20 @@ fun ChatMessage(msg: String) {
 fun SettingsPanel(
     engineMode: String,
     bridge: AuraBridge,
+    modelManager: ModelManager,
+    isDownloading: Boolean,
     hapticsEnabled: Boolean,
     biometricsEnabled: Boolean,
     onHapticsToggle: (Boolean) -> Unit,
     onBiometricsToggle: (Boolean) -> Unit,
+    onDownloadStart: () -> Unit,
+    onDownloadEnd: () -> Unit,
     onClose: () -> Unit
 ) {
     var urlText by remember { mutableStateOf("http://192.168.1.176:11435") }
     var connectionStatus by remember { mutableStateOf("IDLE") } // IDLE, TESTING, OK, FAIL
+    val modelName = "QWEN_1.5B"
+    var modelStatus by remember { mutableStateOf(if (modelManager.isModelDownloaded(modelName)) "READY" else "MISSING") }
 
     Column(
         modifier = Modifier
@@ -453,6 +463,36 @@ fun SettingsPanel(
                     modifier = Modifier.height(56.dp)
                 ) {
                     Text(if (connectionStatus == "TESTING") "..." else "TEST")
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        SettingsSection("MODEL MANAGEMENT") {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+            ) {
+                Column {
+                    Text("QWEN 2.5 1.5B", color = Color.White, style = MaterialTheme.typography.bodyMedium)
+                    Text(modelStatus, color = if (modelStatus == "READY") Color.Green else Color.Red, style = MaterialTheme.typography.labelSmall)
+                }
+                Button(
+                    onClick = {
+                        onDownloadStart()
+                        modelStatus = "DOWNLOADING..."
+                        modelManager.downloadModel(modelName) { success ->
+                            onDownloadEnd()
+                            modelStatus = if (success) "READY" else "FAILED"
+                        }
+                    },
+                    enabled = !isDownloading && modelStatus != "READY",
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8833FF)),
+                    modifier = Modifier.height(40.dp)
+                ) {
+                    Text(if (isDownloading) "..." else "DOWNLOAD")
                 }
             }
         }
