@@ -53,13 +53,12 @@ class ModelManager(private val context: Context) {
                 val assetPath = "models/$modelName.bin"
                 android.util.Log.d("AuraModel", "Attempting to extract: $assetPath")
                 
-                // Check if asset exists before opening
-                val assets = context.assets.list("models") ?: emptyArray()
-                if (!assets.contains("$modelName.bin")) {
-                    val msg = "Asset not found in models/: $modelName.bin. Available: ${assets.joinToString()}"
-                    android.util.Log.e("AuraModel", msg)
-                    onComplete(false, msg)
-                    return@Thread
+                try {
+                    val fd = context.assets.openFd(assetPath)
+                    android.util.Log.d("AuraModel", "Asset size (via openFd): ${fd.length}")
+                    fd.close()
+                } catch (e: Exception) {
+                    android.util.Log.w("AuraModel", "Could not get FD for asset: ${e.message}")
                 }
 
                 val inputStream: InputStream = context.assets.open(assetPath)
