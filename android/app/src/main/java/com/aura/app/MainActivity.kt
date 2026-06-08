@@ -144,7 +144,7 @@ fun ChatScreen(
 
     // DEBUG: Force Local Engine Init
     LaunchedEffect(Unit) {
-        val modelName = "QWEN_1.5B"
+        val modelName = "GEMMA_2B"
         if (modelManager.isModelDownloaded(modelName)) {
             android.util.Log.d("AuraUI", "DEBUG: Forcing Local Engine Init")
             bridge.setLocalMode(true, modelManager.getModelFile(modelName).absolutePath, { chunk, _ ->
@@ -178,7 +178,7 @@ fun ChatScreen(
                     text = "SW", 
                     color = if (engineMode == "STANDALONE") Color(0xFF8833FF) else Color.Gray,
                     modifier = Modifier.clickable { 
-                        val modelName = "QWEN_1.5B"
+                        val modelName = "GEMMA_2B"
                         if (hapticsEnabled) view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                         if (modelManager.isModelDownloaded(modelName)) {
                             isDownloading = true
@@ -460,7 +460,7 @@ fun SettingsPanel(
 ) {
     var urlText by remember { mutableStateOf("http://192.168.1.176:11435") }
     var connectionStatus by remember { mutableStateOf("IDLE") } // IDLE, TESTING, OK, FAIL
-    val modelName = "QWEN_1.5B"
+    val modelName = "GEMMA_2B"
     var modelStatus by remember { mutableStateOf(if (modelManager.isModelDownloaded(modelName)) "READY" else "MISSING") }
 
     Column(
@@ -525,7 +525,7 @@ fun SettingsPanel(
                 verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
             ) {
                 Column {
-                    Text("QWEN 2.5 1.5B", color = Color.White, style = MaterialTheme.typography.bodyMedium)
+                    Text("GEMMA 2B IT", color = Color.White, style = MaterialTheme.typography.bodyMedium)
                     Text(modelStatus, color = if (modelStatus == "READY") Color.Green else Color.Red, style = MaterialTheme.typography.labelSmall)
                 }
                 Button(
@@ -562,7 +562,7 @@ fun SettingsPanel(
 
         SettingsSection("ENGINE STATUS") {
             SettingRow("ACTIVE_MODE", engineMode)
-            SettingRow("MODEL", "Qwen 2.5 1.5B")
+            SettingRow("MODEL", "Gemma 2B IT")
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -647,7 +647,7 @@ fun SettingsPanel(
 
         SettingsSection("ENGINE STATUS") {
             SettingRow("ACTIVE_MODE", engineMode)
-            SettingRow("MODEL", "Qwen 2.5 1.5B")
+            SettingRow("MODEL", "Gemma 2B IT")
             SettingRow("QUANT", "Q8_0 (MediaPipe)")
         }
 
