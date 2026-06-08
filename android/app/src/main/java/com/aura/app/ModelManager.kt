@@ -11,7 +11,7 @@ class ModelManager(private val context: Context) {
     
     // Verified MediaPipe GenAI Models (Public Mirrors)
     private val modelUrls = mapOf(
-        "QWEN_1.5B" to "https://huggingface.co/google/gemma-2b-it-tflite/resolve/main/gemma-2b-it-cpu-int4.bin",
+        "QWEN_1.5B" to "https://huggingface.co/litert-community/Qwen2.5-1.5B-Instruct/resolve/main/Qwen2.5-1.5B-Instruct_seq128_q8_ekv1280.task",
         "PHI3_MINI" to "https://huggingface.co/google/phi-3-mini-4k-instruct-tflite/resolve/main/phi-3-mini-4k-instruct.bin"
     )
 
