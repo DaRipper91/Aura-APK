@@ -51,12 +51,10 @@ class AuraBridge(private val context: android.content.Context) {
     /**
      * Toggles between Remote Python Engine and Standalone Local Engine.
      */
-    fun setLocalMode(enabled: Boolean, modelPath: String? = null, onReady: (Boolean) -> Unit = {}) {
+    fun setLocalMode(enabled: Boolean, modelPath: String? = null, onPartialResult: (String, Boolean) -> Unit = { _, _ -> }, onReady: (Boolean) -> Unit = {}) {
         useLocalInference = enabled
         if (enabled && modelPath != null) {
-            localEngine?.initialize(modelPath, { chunk, isComplete ->
-                // This will be called via the global callback in sendPrompt
-            }) { success ->
+            localEngine?.initialize(modelPath, onPartialResult) { success ->
                 mainHandler.post { onReady(success) }
             }
         } else {
