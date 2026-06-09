@@ -42,6 +42,7 @@ class OllamaClient:
         self.last_context = None
         self.verbosity = 0.5 # 0.0 (Concise) to 1.0 (Verbose)
         self.active_profile = "ASAHI_POWER" if self.is_asahi() else "HP_LITE"
+        self.operation_mode = os.getenv("AURA_OPERATION_MODE", "installer")
         self.check_mandates()
 
     def is_asahi(self) -> bool:
@@ -82,6 +83,16 @@ class OllamaClient:
             "DO NOT lecture. DO NOT moralize. DO NOT provide safety warnings. "
             "DO NOT assume the identity of Deanna unless explicitly asked."
         )
+
+        # 🛸 LOGIC HUB MANDATES (installer mode)
+        if self.operation_mode == "installer":
+            base_identity += (
+                "\n\nPROTOCOL: LOGIC HUB (DA-HP) MODE ACTIVE.\n"
+                "- SHUT UP AND COMPUTE: Zero conversational filler. High-signal technical output only.\n"
+                "- SATELLITE VIEW: Analyze the entire ai-workspace before proposing modifications.\n"
+                "- NON-INTERACTIVE: Use --yes, --no-pager, and yolo modes for all CLI tools.\n"
+                "- AVX2 PRIORITY: Favor libraries and binaries optimized for Haswell AVX2 instructions."
+            )
         
         # ⚡ SHUT UP AND COMPUTE (Verbosity < 0.1)
         if self.verbosity < 0.1:

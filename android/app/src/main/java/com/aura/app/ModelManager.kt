@@ -13,7 +13,7 @@ class ModelManager(private val context: Context) {
     private val modelUrls = mapOf(
         "QWEN_1.5B" to "https://huggingface.co/litert-community/Qwen2.5-1.5B-Instruct/resolve/main/Qwen2.5-1.5B-Instruct_seq128_q8_ekv1280.task",
         "PHI3_MINI" to "https://huggingface.co/google/phi-3-mini-4k-instruct-tflite/resolve/main/phi-3-mini-4k-instruct.bin",
-        "GEMMA_2B" to "https://huggingface.co/google/gemma-1.1-2b-it-tflite/resolve/main/gemma-1.1-2b-it-gpu-int4.bin"
+        "GEMMA_2B" to "https://storage.googleapis.com/mediapipe-models/llm_inference/gemma-2b-it-gpu-int4.bin"
     )
 
     private val expectedHashes = mapOf(

@@ -33,8 +33,6 @@ import coil.compose.AsyncImage
 class MainActivity : FragmentActivity() {
     private lateinit var auraBridge: AuraBridge
     private lateinit var biometricHelper: BiometricHelper
-    private lateinit var modelManager: ModelManager
-    private lateinit var shellBridge: ShellBridge
     private var speechCallback: ((String) -> Unit)? = null
 
     private val speechRecognizerLauncher = registerForActivityResult(
@@ -59,13 +57,8 @@ class MainActivity : FragmentActivity() {
         enableEdgeToEdge()
         auraBridge = AuraBridge(this)
         biometricHelper = BiometricHelper(this)
-        modelManager = ModelManager(this)
-        shellBridge = ShellBridge()
 
-        // 🔐 SECURE: Require biometric unlock on launch
-        // biometricHelper.authenticate {
-            setupContent()
-        // }
+        setupContent()
     }
 
     private fun setupContent() {
@@ -75,7 +68,7 @@ class MainActivity : FragmentActivity() {
 
         setContent {
             AuraTheme {
-                ChatScreen(auraBridge, modelManager, shellBridge, sharedText, ::launchSpeechRecognition)
+                ChatScreen(auraBridge, sharedText, ::launchSpeechRecognition)
             }
         }
     }
@@ -125,15 +118,11 @@ fun AuraTheme(content: @Composable () -> Unit) {
 @Composable
 fun ChatScreen(
     bridge: AuraBridge, 
-    modelManager: ModelManager,
-    shellBridge: ShellBridge,
     initialPrompt: String? = null, 
     onDictate: (((String) -> Unit) -> Unit)? = null
 ) {
     var inputText by remember { mutableStateOf(initialPrompt ?: "") }
     var messages by remember { mutableStateOf(listOf<String>()) }
-    var engineMode by remember { mutableStateOf("REMOTE") } // REMOTE, STANDALONE, ADVANCED
-    var isDownloading by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
     
     // Feature Toggles
@@ -141,21 +130,6 @@ fun ChatScreen(
     var biometricsEnabled by remember { mutableStateOf(false) }
     
     val view = LocalView.current
-
-    // DEBUG: Force Local Engine Init
-    LaunchedEffect(Unit) {
-        val modelName = "GEMMA_2B"
-        if (modelManager.isModelDownloaded(modelName)) {
-            android.util.Log.d("AuraUI", "DEBUG: Forcing Local Engine Init")
-            bridge.setLocalMode(true, modelManager.getModelFile(modelName).absolutePath, { chunk, _ ->
-                messages = messages.dropLast(1) + "AURA: $chunk"
-            }) { success ->
-                 android.util.Log.d("AuraUI", "DEBUG: Engine Init Result: $success")
-                 if (success) engineMode = "STANDALONE"
-            }
-        }
-    }
-
     val context = LocalContext.current
 
     Column(
@@ -166,167 +140,32 @@ fun ChatScreen(
             .navigationBarsPadding() 
             .imePadding() 
     ) {
-        // 🌌 HEADER: Mode Switcher
+        // 🌌 HEADER: Simple Branding
         Row(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
         ) {
-            Text("AURA // ${engineMode}", color = Color(0xFFD4AF37), style = MaterialTheme.typography.labelSmall)
-            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                Text(
-                    text = "SW", 
-                    color = if (engineMode == "STANDALONE") Color(0xFF8833FF) else Color.Gray,
-                    modifier = Modifier.clickable { 
-                        val modelName = "GEMMA_2B"
-                        if (hapticsEnabled) view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                        if (modelManager.isModelDownloaded(modelName)) {
-                            isDownloading = true
-                            if (hapticsEnabled) view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                            bridge.setLocalMode(true, modelManager.getModelFile(modelName).absolutePath, { chunk, isComplete ->
-                                messages = messages.dropLast(1) + "AURA: $chunk"
-                            }) { success ->
-                                isDownloading = false
-                                if (success) {
-                                    engineMode = "STANDALONE"
-                                    if (hapticsEnabled) view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-                                } else {
-                                    if (hapticsEnabled) view.performHapticFeedback(HapticFeedbackConstants.REJECT)
-                                    messages = messages + "SYSTEM: Local Engine Initialization Failed"
-                                }
-                            }
-                        } else if (modelManager.isModelInAssets(modelName)) {
-                            isDownloading = true 
-                            if (hapticsEnabled) view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                            modelManager.extractModelFromAssets(modelName) { success, error ->
-                                isDownloading = false
-                                if (success) {
-                                    if (hapticsEnabled) view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-                                    engineMode = "STANDALONE"
-                                    bridge.setLocalMode(true, modelManager.getModelFile(modelName).absolutePath, { chunk, _ ->
-                                        messages = messages.dropLast(1) + "AURA: $chunk"
-                                    })
-                                } else {
-                                    if (hapticsEnabled) view.performHapticFeedback(HapticFeedbackConstants.REJECT)
-                                    android.util.Log.e("AuraUI", "Extraction Error: $error")
-                                    messages = messages + "SYSTEM: Local Engine Error - $error"
-                                }
-                            }
-                        } else {
-                            isDownloading = true
-                            modelManager.downloadModel(modelName) { status, isComplete ->
-                                if (isComplete) {
-                                    isDownloading = false
-                                    if (status == "READY") {
-                                        if (hapticsEnabled) view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-                                        engineMode = "STANDALONE"
-                                        bridge.setLocalMode(true, modelManager.getModelFile(modelName).absolutePath, { chunk, _ ->
-                                            messages = messages.dropLast(1) + "AURA: $chunk"
-                                        })
-                                    } else {
-                                        if (hapticsEnabled) view.performHapticFeedback(HapticFeedbackConstants.REJECT)
-                                        messages = messages + "SYSTEM: Download Failed - $status"
-                                    }
-                                } else {
-                                    messages = messages.filter { !it.startsWith("SYSTEM: Download Progress") } + "SYSTEM: Download Progress: $status"
-                                }
-                            }
-                        }
-                    }.padding(horizontal = 8.dp),
-                    style = MaterialTheme.typography.labelSmall
-                )
-                Text(
-                    text = "RE", 
-                    color = if (engineMode == "REMOTE") Color(0xFF8833FF) else Color.Gray,
-                    modifier = Modifier.clickable { 
-                        if (hapticsEnabled) view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                        engineMode = "REMOTE"
-                        bridge.setLocalMode(false)
-                    }.padding(horizontal = 8.dp),
-                    style = MaterialTheme.typography.labelSmall
-                )
-                Text(
-                    text = "ADV", 
-                    color = if (engineMode == "ADVANCED") Color(0xFFD4AF37) else Color.Gray,
-                    modifier = Modifier.clickable { 
-                        if (hapticsEnabled) view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                        engineMode = "ADVANCED"
-                    }.padding(horizontal = 8.dp),
-                    style = MaterialTheme.typography.labelSmall
-                )
-                
-                Spacer(modifier = Modifier.width(8.dp))
-                
-                Text(
-                    text = "SETTINGS",
-                    color = if (showSettings) Color(0xFFD4AF37) else Color.Gray,
-                    modifier = Modifier.clickable {
-                        if (hapticsEnabled) view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                        showSettings = !showSettings
-                    }.padding(horizontal = 8.dp),
-                    style = MaterialTheme.typography.labelSmall
-                )
-            }
-        }
-
-        if (isDownloading) {
-            val progressMsg = messages.lastOrNull { it.startsWith("SYSTEM: Download Progress") }
-            val progressText = progressMsg?.substringAfter(":")?.trim() ?: "Pulling Model..."
-            val progressValue = try {
-                val percentText = progressText.substringAfter("Progress: ").substringBefore("%")
-                percentText.toFloat() / 100f
-            } catch (e: Exception) {
-                0.0f
-            }
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color(0xFF0D0D0D))
-                    .padding(vertical = 8.dp)
-            ) {
-                LinearProgressIndicator(
-                    progress = progressValue,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(4.dp),
-                    color = Color(0xFFD4AF37),
-                    trackColor = Color(0xFF1A1A1A)
-                )
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = progressText,
-                        color = Color(0xFFD4AF37),
-                        style = MaterialTheme.typography.labelSmall
-                    )
-                    Text(
-                        text = "NETWORK LINK ACTIVE",
-                        color = Color(0xFF44FF44),
-                        style = MaterialTheme.typography.labelSmall
-                    )
-                }
-            }
+            Text("AURA // LOGIC HUB", color = Color(0xFFD4AF37), style = MaterialTheme.typography.labelSmall)
+            
+            Text(
+                text = "SETTINGS",
+                color = if (showSettings) Color(0xFFD4AF37) else Color.Gray,
+                modifier = Modifier.clickable {
+                    if (hapticsEnabled) view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                    showSettings = !showSettings
+                }.padding(horizontal = 8.dp),
+                style = MaterialTheme.typography.labelSmall
+            )
         }
 
         if (showSettings) {
             SettingsPanel(
-                engineMode = engineMode,
                 bridge = bridge,
-                modelManager = modelManager,
-                isDownloading = isDownloading,
                 hapticsEnabled = hapticsEnabled,
                 biometricsEnabled = biometricsEnabled,
-                messages = messages,
-                onMessagesChange = { messages = it },
                 onHapticsToggle = { hapticsEnabled = it },
                 onBiometricsToggle = { biometricsEnabled = it },
-                onDownloadStart = { isDownloading = true },
-                onDownloadEnd = { isDownloading = false },
                 onClose = { showSettings = false }
             )
         }
@@ -348,7 +187,7 @@ fun ChatScreen(
                 value = inputText,
                 onValueChange = { inputText = it },
                 modifier = Modifier.weight(1f),
-                placeholder = { Text(if (engineMode == "ADVANCED") "Root Command..." else "Aura Command...", color = Color.Gray) },
+                placeholder = { Text("Aura Command...", color = Color.Gray) },
                 colors = TextFieldDefaults.textFieldColors(
                     containerColor = Color(0xFF1A1A1A),
                     focusedTextColor = Color.White,
@@ -373,23 +212,12 @@ fun ChatScreen(
                         messages = messages + "AURA: ..." 
                         inputText = ""
 
-                        if (engineMode == "ADVANCED") {
-                            shellBridge.execute(prompt, object : ShellBridge.ShellCallback {
-                                override fun onOutput(line: String) {
-                                    messages = messages.dropLast(1) + "AURA: (SHELL) $line"
-                                }
-                                override fun onComplete(exitCode: Int) {
-                                    messages = messages.dropLast(1) + "AURA: Execution Finished [Code: $exitCode]"
-                                }
-                            })
-                        } else {
-                            val serviceIntent = Intent(context, AuraService::class.java)
-                            context.startForegroundService(serviceIntent)
-                            
-                            bridge.sendPrompt(prompt) { currentStream ->
-                                if (hapticsEnabled) view.performHapticFeedback(HapticFeedbackConstants.TEXT_HANDLE_MOVE)
-                                messages = messages.dropLast(1) + "AURA: $currentStream"
-                            }
+                        val serviceIntent = Intent(context, AuraService::class.java)
+                        context.startForegroundService(serviceIntent)
+                        
+                        bridge.sendPrompt(prompt) { currentStream ->
+                            if (hapticsEnabled) view.performHapticFeedback(HapticFeedbackConstants.TEXT_HANDLE_MOVE)
+                            messages = messages.dropLast(1) + "AURA: $currentStream"
                         }
                     }
                 },
@@ -444,24 +272,15 @@ fun ChatMessage(msg: String) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsPanel(
-    engineMode: String,
     bridge: AuraBridge,
-    modelManager: ModelManager,
-    isDownloading: Boolean,
     hapticsEnabled: Boolean,
     biometricsEnabled: Boolean,
-    messages: List<String>,
-    onMessagesChange: (List<String>) -> Unit,
     onHapticsToggle: (Boolean) -> Unit,
     onBiometricsToggle: (Boolean) -> Unit,
-    onDownloadStart: () -> Unit,
-    onDownloadEnd: () -> Unit,
     onClose: () -> Unit
 ) {
-    var urlText by remember { mutableStateOf("http://192.168.1.176:11435") }
+    var urlText by remember { mutableStateOf(bridge.getOrchestratorUrl()) }
     var connectionStatus by remember { mutableStateOf("IDLE") } // IDLE, TESTING, OK, FAIL
-    val modelName = "GEMMA_2B"
-    var modelStatus by remember { mutableStateOf(if (modelManager.isModelDownloaded(modelName)) "READY" else "MISSING") }
 
     Column(
         modifier = Modifier
@@ -476,7 +295,7 @@ fun SettingsPanel(
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
-        SettingsSection("REMOTE ORCHESTRATOR") {
+        SettingsSection("LOGIC HUB (DA-HP)") {
             Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                 TextField(
                     value = urlText,
@@ -514,41 +333,12 @@ fun SettingsPanel(
                     Text(if (connectionStatus == "TESTING") "..." else "TEST")
                 }
             }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        SettingsSection("MODEL MANAGEMENT") {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
-            ) {
-                Column {
-                    Text("GEMMA 2B IT", color = Color.White, style = MaterialTheme.typography.bodyMedium)
-                    Text(modelStatus, color = if (modelStatus == "READY") Color.Green else Color.Red, style = MaterialTheme.typography.labelSmall)
-                }
-                Button(
-                    onClick = {
-                        onDownloadStart()
-                        modelStatus = "DOWNLOADING..."
-                        modelManager.downloadModel(modelName) { status, isComplete ->
-                            if (isComplete) {
-                                modelStatus = status
-                                onDownloadEnd()
-                            } else {
-                                modelStatus = status
-                                onMessagesChange(messages.filter { !it.startsWith("SYSTEM: Download Progress") } + "SYSTEM: Download Progress: $status")
-                            }
-                        }
-                    },
-                    enabled = !isDownloading && modelStatus != "READY",
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8833FF)),
-                    modifier = Modifier.height(40.dp)
-                ) {
-                    Text(if (isDownloading) "..." else "DOWNLOAD")
-                }
-            }
+            Text(
+                "IP of DA-HP via Tailscale.", 
+                color = Color.Gray, 
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier.padding(top = 4.dp, start = 4.dp)
+            )
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -561,8 +351,8 @@ fun SettingsPanel(
         Spacer(modifier = Modifier.height(16.dp))
 
         SettingsSection("ENGINE STATUS") {
-            SettingRow("ACTIVE_MODE", engineMode)
-            SettingRow("MODEL", "Gemma 2B IT")
+            SettingRow("MODE", "REMOTE_HUB")
+            SettingRow("MODELS", "MANAGED_BY_DA-HP")
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -596,70 +386,27 @@ fun ToggleRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Uni
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsPanel(
-    engineMode: String,
-    bridge: AuraBridge,
-    onClose: () -> Unit
-) {
-    var urlText by remember { mutableStateOf("http://192.168.1.176:11435") }
-    
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color(0xFF1A1A1A))
-            .padding(16.dp)
-    ) {
+fun SettingsSection(title: String, content: @Composable () -> Unit) {
+    Column {
         Text(
-            "VOID // SETTINGS", 
-            color = Color(0xFFD4AF37), 
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(bottom = 16.dp)
+            title, 
+            color = Color(0xFF8833FF), 
+            style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier.padding(bottom = 8.dp)
         )
+        content()
+    }
+}
 
-        SettingsSection("REMOTE ORCHESTRATOR") {
-            TextField(
-                value = urlText,
-                onValueChange = { 
-                    urlText = it
-                    bridge.setOrchestratorUrl(it)
-                },
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("http://...", color = Color.DarkGray) },
-                textStyle = MaterialTheme.typography.bodySmall,
-                colors = TextFieldDefaults.textFieldColors(
-                    containerColor = Color(0xFF2A2A2A),
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.LightGray,
-                    cursorColor = Color(0xFFD4AF37)
-                )
-            )
-            Text(
-                "Point to an Ollama-compatible endpoint.", 
-                color = Color.Gray, 
-                style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier.padding(top = 4.dp, start = 4.dp)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        SettingsSection("ENGINE STATUS") {
-            SettingRow("ACTIVE_MODE", engineMode)
-            SettingRow("MODEL", "Gemma 2B IT")
-            SettingRow("QUANT", "Q8_0 (MediaPipe)")
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        Button(
-            onClick = onClose,
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2A2A2A))
-        ) {
-            Text("RETURN TO VOID", color = Color(0xFFD4AF37))
-        }
+@Composable
+fun SettingRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(label, color = Color.Gray, style = MaterialTheme.typography.bodySmall)
+        Text(value, color = Color.White, style = MaterialTheme.typography.bodySmall)
     }
 }
 

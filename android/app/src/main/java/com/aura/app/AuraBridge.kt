@@ -10,6 +10,7 @@ class AuraBridge(private val context: android.content.Context) {
     private var localEngine: LocalInferenceEngine? = null
     private val mainHandler = Handler(Looper.getMainLooper())
     private var useLocalInference = false
+    private val prefs = context.getSharedPreferences("aura_prefs", android.content.Context.MODE_PRIVATE)
 
     init {
         localEngine = LocalInferenceEngine(context)
@@ -18,6 +19,10 @@ class AuraBridge(private val context: android.content.Context) {
             // Loads aura_core/engine.py (Full Python Build)
             val engineModule = py.getModule("aura_core.engine")
             pythonEngine = engineModule.callAttr("OllamaClient")
+            
+            // 💾 PERSISTENCE: Load saved URL or use default
+            val savedUrl = prefs.getString("orchestrator_url", "http://10.0.0.1:11434")
+            pythonEngine?.callAttr("set_base_url", savedUrl)
         } catch (e: Exception) {
             android.util.Log.e("AuraBridge", "Python Engine Initialization Failed: ${e.message}")
         }
@@ -25,9 +30,18 @@ class AuraBridge(private val context: android.content.Context) {
 
     /**
      * Updates the base URL for the Python engine (Remote Bridge).
+     * Persists the URL in SharedPreferences.
      */
     fun setOrchestratorUrl(url: String) {
+        prefs.edit().putString("orchestrator_url", url).apply()
         pythonEngine?.callAttr("set_base_url", url)
+    }
+
+    /**
+     * Gets the current orchestrator URL from preferences.
+     */
+    fun getOrchestratorUrl(): String {
+        return prefs.getString("orchestrator_url", "http://10.0.0.1:11434") ?: "http://10.0.0.1:11434"
     }
 
     /**
