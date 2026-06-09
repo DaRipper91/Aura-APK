@@ -409,27 +409,3 @@ fun SettingRow(label: String, value: String) {
         Text(value, color = Color.White, style = MaterialTheme.typography.bodySmall)
     }
 }
-
-@Composable
-fun SettingsSection(title: String, content: @Composable () -> Unit) {
-    Column {
-        Text(
-            title, 
-            color = Color(0xFF8833FF), 
-            style = MaterialTheme.typography.labelLarge,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-        content()
-    }
-}
-
-@Composable
-fun SettingRow(label: String, value: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(label, color = Color.Gray, style = MaterialTheme.typography.bodySmall)
-        Text(value, color = Color.White, style = MaterialTheme.typography.bodySmall)
-    }
-}
